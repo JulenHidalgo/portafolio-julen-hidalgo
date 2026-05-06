@@ -260,34 +260,39 @@ export const DATA = {
 
   contact: [
     {
-      icon: "✉️",
+      iconType: "email",
       label: "Email",
       val: "julenhidalgo2005@gmail.com",
-      url: "mailto:julenhidalgo2005@gmail.com",
+      url: null,
+      copyOnClick: true,
     },
     {
-      icon: "📞",
+      iconType: "phone",
       label: "Teléfono",
       val: "688 85 53 47",
       url: "tel:+34688855347",
+      copyOnClick: false,
     },
     {
-      icon: "💼",
+      iconType: "linkedin",
       label: "LinkedIn",
       val: "julen-hidalgo-chamero",
       url: "https://www.linkedin.com/in/julen-hidalgo-chamero-11a70a2bb/",
+      copyOnClick: false,
     },
     {
-      icon: "🐙",
+      iconType: "github",
       label: "GitHub",
       val: "github.com/JulenHidalgo",
       url: "https://github.com/JulenHidalgo",
+      copyOnClick: false,
     },
     {
-      icon: "📍",
+      iconType: "location",
       label: "Ubicación",
       val: "Etxebarri, Bizkaia",
       url: null,
+      copyOnClick: false,
     },
   ],
 };
