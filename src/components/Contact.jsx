@@ -3,7 +3,7 @@ import { useReveal } from '../hooks/useReveal';
 import { DATA } from '../data';
 import styles from './Contact.module.css';
 
-// Mapa de iconos SVG por tipo — añade nuevos tipos aquí si amplías data.js
+// Mapa de iconos SVG — añade claves aquí si amplías data.js
 const ICONS = {
   email: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -42,38 +42,81 @@ const ICON_COPY = (
     <path d="M2 5v9a1.5 1.5 0 0 0 1.5 1.5H11"/>
   </svg>
 );
-
 const ICON_CHECK = (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M2 8l4 4 8-8"/>
   </svg>
 );
-
 const ICON_ARROW = (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M3 8h10M9 4l4 4-4 4"/>
   </svg>
 );
 
-// Encuentra el email a copiar en el CTA (primer item con copyOnClick: true)
-const ctaEmail = DATA.contact.find((c) => c.copyOnClick)?.val ?? '';
+// Estado inicial del formulario
+const EMPTY_FORM = { name: '', email: '', message: '' };
 
 export default function Contact() {
   const ref = useReveal();
-  // Tracks which item index was just copied (null = none)
+
+  // Copy email
   const [copiedIndex, setCopiedIndex] = useState(null);
 
-  const handleCopy = (val, index) => {
-    navigator.clipboard.writeText(val).then(() => {
+  // Contact form
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [formStatus, setFormStatus] = useState('idle'); // idle | sending | success | error
+  const [formError, setFormError] = useState('');
+
+  // ── Copy email via /api/email ──────────────────────
+  const handleCopyEmail = async (index) => {
+    try {
+      const res = await fetch('/api/email');
+      const { email, error } = await res.json();
+      if (error || !email) throw new Error(error ?? 'Sin respuesta');
+      await navigator.clipboard.writeText(email);
       setCopiedIndex(index);
       setTimeout(() => setCopiedIndex(null), 2000);
-    });
+    } catch {
+      // Fallback: abre cliente de correo sin exponer la dirección
+      window.location.href = '/api/email';
+    }
   };
+
+  // ── Contact form via /api/contact ─────────────────
+  const handleFormChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    setFormStatus('sending');
+    setFormError('');
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error ?? 'Error desconocido');
+
+      setFormStatus('success');
+      setForm(EMPTY_FORM);
+    } catch (err) {
+      setFormStatus('error');
+      setFormError(err.message);
+    }
+  };
+
+  const linkedinUrl = DATA.contact.find((c) => c.iconType === 'linkedin')?.url ?? '#';
 
   return (
     <section id="contacto" className={styles.section}>
       <div className="reveal" ref={ref}>
 
+        {/* ── Header ── */}
         <div className={styles.header}>
           <div className="section-label">Contacto</div>
           <h2 className={styles.heading}>
@@ -86,81 +129,140 @@ export default function Contact() {
           </p>
         </div>
 
-        <div className={styles.grid}>
-          {DATA.contact.map((c, i) => {
-            const isCopied = copiedIndex === i;
-            const isInteractive = c.copyOnClick || c.url;
+        {/* ── Layout: cards + formulario ── */}
+        <div className={styles.layout}>
 
-            const inner = (
-              <>
-                <div className={styles.cardIcon}>
-                  {ICONS[c.iconType] ?? null}
-                </div>
-                <div className={styles.cardText}>
-                  <span className={styles.cardLabel}>{c.label}</span>
-                  <span className={styles.cardVal}>
-                    {isCopied ? '¡Copiado!' : c.val}
-                  </span>
-                </div>
-                {isInteractive && (
-                  <div className={styles.cardArrow}>
-                    {c.copyOnClick
-                      ? (isCopied ? ICON_CHECK : ICON_COPY)
-                      : ICON_ARROW}
+          {/* Contact cards */}
+          <div className={styles.cards}>
+            {DATA.contact.map((c, i) => {
+              const isCopied = copiedIndex === i;
+              const isInteractive = c.copyOnClick || c.url;
+
+              const inner = (
+                <>
+                  <div className={styles.cardIcon}>{ICONS[c.iconType] ?? null}</div>
+                  <div className={styles.cardText}>
+                    <span className={styles.cardLabel}>{c.label}</span>
+                    <span className={styles.cardVal}>{isCopied ? '¡Copiado!' : c.val}</span>
                   </div>
-                )}
-                <div className={styles.cardGlow} />
-              </>
-            );
-
-            // copyOnClick → button
-            if (c.copyOnClick) {
-              return (
-                <button
-                  key={i}
-                  className={`${styles.card} ${isCopied ? styles.cardCopied : ''}`}
-                  onClick={() => handleCopy(c.val, i)}
-                >
-                  {inner}
-                </button>
+                  {isInteractive && (
+                    <div className={styles.cardArrow}>
+                      {c.copyOnClick ? (isCopied ? ICON_CHECK : ICON_COPY) : ICON_ARROW}
+                    </div>
+                  )}
+                  <div className={styles.cardGlow} />
+                </>
               );
-            }
 
-            // tiene url → enlace externo
-            if (c.url) {
+              if (c.copyOnClick) {
+                return (
+                  <button
+                    key={i}
+                    className={`${styles.card} ${isCopied ? styles.cardCopied : ''}`}
+                    onClick={() => handleCopyEmail(i)}
+                  >
+                    {inner}
+                  </button>
+                );
+              }
+
+              if (c.url) {
+                return (
+                  <a key={i} href={c.url} className={styles.card} target="_blank" rel="noreferrer">
+                    {inner}
+                  </a>
+                );
+              }
+
               return (
-                <a key={i} href={c.url} className={styles.card} target="_blank" rel="noreferrer">
+                <div key={i} className={`${styles.card} ${styles.cardStatic}`}>
                   {inner}
-                </a>
+                </div>
               );
-            }
+            })}
 
-            // sin url ni copy → estático
-            return (
-              <div key={i} className={`${styles.card} ${styles.cardStatic}`}>
-                {inner}
+            <div className={styles.ctaRow}>
+              <button
+                className="btn btn-primary"
+                onClick={() => handleCopyEmail(-1)}
+              >
+                {copiedIndex === -1 ? '¡Email copiado! ✓' : 'Copiar email →'}
+              </button>
+              <a href={linkedinUrl} target="_blank" rel="noreferrer" className="btn btn-ghost">
+                LinkedIn
+              </a>
+            </div>
+          </div>
+
+          {/* Contact form */}
+          <div className={styles.formWrap}>
+            {formStatus === 'success' ? (
+              <div className={styles.successMsg}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="m9 12 2 2 4-4"/>
+                </svg>
+                <p>¡Mensaje enviado! Te respondo pronto.</p>
               </div>
-            );
-          })}
-        </div>
+            ) : (
+              <form className={styles.form} onSubmit={handleFormSubmit} noValidate>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="name">Nombre</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    className={styles.formInput}
+                    placeholder="Tu nombre"
+                    value={form.name}
+                    onChange={handleFormChange}
+                    required
+                    maxLength={100}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="email">Email</label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    className={styles.formInput}
+                    placeholder="tu@email.com"
+                    value={form.email}
+                    onChange={handleFormChange}
+                    required
+                    maxLength={200}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="message">Mensaje</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    className={styles.formTextarea}
+                    placeholder="Cuéntame tu proyecto..."
+                    value={form.message}
+                    onChange={handleFormChange}
+                    required
+                    maxLength={2000}
+                    rows={4}
+                  />
+                </div>
+                {formStatus === 'error' && (
+                  <p className={styles.errorMsg}>{formError}</p>
+                )}
+                <button
+                  type="submit"
+                  className={`btn btn-primary ${styles.formBtn}`}
+                  disabled={formStatus === 'sending'}
+                >
+                  {formStatus === 'sending' ? 'Enviando...' : 'Enviar mensaje →'}
+                </button>
+              </form>
+            )}
+          </div>
 
-        <div className={styles.cta}>
-          <button
-            className="btn btn-primary"
-            onClick={() => handleCopy(ctaEmail, -1)}
-          >
-            {copiedIndex === -1 ? '¡Email copiado! ✓' : 'Copiar email →'}
-          </button>
-          <a
-            href={DATA.contact.find((c) => c.iconType === 'linkedin')?.url ?? '#'}
-            target="_blank"
-            rel="noreferrer"
-            className="btn btn-ghost"
-          >
-            Conectar en LinkedIn
-          </a>
         </div>
-
       </div>
     </section>
   );

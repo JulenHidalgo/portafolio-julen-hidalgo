@@ -260,20 +260,6 @@ export const DATA = {
 
   contact: [
     {
-      iconType: "email",
-      label: "Email",
-      val: "julenhidalgo2005@gmail.com",
-      url: null,
-      copyOnClick: true,
-    },
-    {
-      iconType: "phone",
-      label: "Teléfono",
-      val: "688 85 53 47",
-      url: "tel:+34688855347",
-      copyOnClick: false,
-    },
-    {
       iconType: "linkedin",
       label: "LinkedIn",
       val: "julen-hidalgo-chamero",
@@ -290,7 +276,7 @@ export const DATA = {
     {
       iconType: "location",
       label: "Ubicación",
-      val: "Etxebarri, Bizkaia",
+      val: "Bilbao, Bizkaia",
       url: null,
       copyOnClick: false,
     },
