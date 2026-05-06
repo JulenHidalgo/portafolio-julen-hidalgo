@@ -10,7 +10,7 @@
  */
 import nodemailer from 'nodemailer';
 
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? 'https://tu-dominio.vercel.app';
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN ?? 'https://portafolio-julen-hidalgo.vercel.app';
 
 export default async function handler(req, res) {
   // CORS estricto
