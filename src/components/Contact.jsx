@@ -67,22 +67,7 @@ export default function Contact() {
   const [formStatus, setFormStatus] = useState('idle'); // idle | sending | success | error
   const [formError, setFormError] = useState('');
 
-  // ── Copy email via /api/email ──────────────────────
-  const handleCopyEmail = async (index) => {
-    try {
-      const res = await fetch('/api/email');
-      const { email, error } = await res.json();
-      if (error || !email) throw new Error(error ?? 'Sin respuesta');
-      await navigator.clipboard.writeText(email);
-      setCopiedIndex(index);
-      setTimeout(() => setCopiedIndex(null), 2000);
-    } catch {
-      // Fallback: abre cliente de correo sin exponer la dirección
-      window.location.href = '/api/email';
-    }
-  };
 
-  // ── Contact form via /api/contact ─────────────────
   const handleFormChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -154,18 +139,6 @@ export default function Contact() {
                 </>
               );
 
-              if (c.copyOnClick) {
-                return (
-                  <button
-                    key={i}
-                    className={`${styles.card} ${isCopied ? styles.cardCopied : ''}`}
-                    onClick={() => handleCopyEmail(i)}
-                  >
-                    {inner}
-                  </button>
-                );
-              }
-
               if (c.url) {
                 return (
                   <a key={i} href={c.url} className={styles.card} target="_blank" rel="noreferrer">
@@ -181,17 +154,6 @@ export default function Contact() {
               );
             })}
 
-            <div className={styles.ctaRow}>
-              <button
-                className="btn btn-primary"
-                onClick={() => handleCopyEmail(-1)}
-              >
-                {copiedIndex === -1 ? '¡Email copiado! ✓' : 'Copiar email →'}
-              </button>
-              <a href={linkedinUrl} target="_blank" rel="noreferrer" className="btn btn-ghost">
-                LinkedIn
-              </a>
-            </div>
           </div>
 
           {/* Contact form */}
